@@ -4,7 +4,19 @@
 APerson::APerson()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	SkeletalMeshComponentPtr = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComp"); //analog of the new operator
+	SkeletalMeshComponentPtr->SetupAttachment(GetRootComponent());
+	LoadAndSetSkeletalMesh();
+	
 }
+// Ctor functions
+void APerson::LoadAndSetSkeletalMesh()
+{
+	Loader<USkeletalMesh> Loader;
+	// SkeletalMeshComponentPtr->SetSkeletalMesh(Loader.GetDataPtr());
+}
+//
 
 void APerson::BeginPlay()
 {
@@ -28,3 +40,4 @@ const char* BoolToCStr(bool bool_value)
 {
 	return (bool_value?"true":"false");
 }
+

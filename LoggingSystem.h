@@ -9,15 +9,14 @@
 class FPS_API LoggingSystem
 {
 private:
-	LoggingSystem(std::string EventLogPath);
+	LoggingSystem(const char* EventLogPath);
 	static LoggingSystem* _InstancePtr;
 public:
-	static LoggingSystem* Instance(std::string EventLogPath);
+	static LoggingSystem* Instance(const char* EventLogPath);
 public:
-	void WriteToLog(std::string);
+	void WriteToLog(std::string SomeText);
 public:
 	~LoggingSystem();
 private:
-	std::ofstream _EventLog;
 	std::string _EventLogPath;
 };

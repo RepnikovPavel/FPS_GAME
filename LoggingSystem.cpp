@@ -1,21 +1,18 @@
 #include "LoggingSystem.h"
 
-LoggingSystem::LoggingSystem(std::string EventLogPath)
+LoggingSystem::LoggingSystem(const char* EventLogPath)
 {
-	std::ofstream _EventLog=std::ofstream(EventLogPath,std::ios::trunc);
+	std::ofstream _EventLog(EventLogPath,std::ios_base::trunc);
+	_EventLog.close();
 	_EventLogPath = EventLogPath;
 }
 
 LoggingSystem::~LoggingSystem()
 {
-	_EventLog.close();
 	delete _InstancePtr;
-#ifdef START_LOG_NOTEPAD_AT_END_OF_PROGRAM
-	system((std::string("start notepad ")+_EventLogPath).c_str());
-#endif
 }
 
-LoggingSystem* LoggingSystem::Instance(std::string EventLogPath)
+LoggingSystem* LoggingSystem::Instance(const char* EventLogPath)
 {
 	if (!_InstancePtr)
 	{
@@ -26,7 +23,10 @@ LoggingSystem* LoggingSystem::Instance(std::string EventLogPath)
 
 void LoggingSystem::WriteToLog(std::string SomeText)
 {
+	//here the problem
+	std::ofstream _EventLog(_EventLogPath, std::ios_base::app);
 	_EventLog<<SomeText;
+	_EventLog.close();
 }
 
 LoggingSystem* LoggingSystem::_InstancePtr{nullptr};
