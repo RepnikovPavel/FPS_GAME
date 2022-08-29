@@ -1,4 +1,5 @@
 #include "LoggingSystem.h"
+#include <fstream>
 
 LoggingSystem::LoggingSystem(const char* EventLogPath)
 {
@@ -21,9 +22,8 @@ LoggingSystem* LoggingSystem::Instance(const char* EventLogPath)
 	return _InstancePtr;
 }
 
-void LoggingSystem::WriteToLog(std::string SomeText)
+void LoggingSystem::WriteToLog(std::string SomeText) const
 {
-	//here the problem
 	std::ofstream _EventLog(_EventLogPath, std::ios_base::app);
 	_EventLog<<SomeText;
 	_EventLog.close();

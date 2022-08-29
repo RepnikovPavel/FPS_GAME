@@ -13,8 +13,9 @@ APerson::APerson()
 // Ctor functions
 void APerson::LoadAndSetSkeletalMesh()
 {
-	Loader<USkeletalMesh> Loader;
-	// SkeletalMeshComponentPtr->SetSkeletalMesh(Loader.GetDataPtr());
+	const char* bytes= PATH_SKELETAL_MESH_ARMS;
+	Loader<USkeletalMesh> Loader(FString(strlen(bytes),bytes));
+	SkeletalMeshComponentPtr->SetSkeletalMesh(Loader.GetDataPtr());
 }
 //
 

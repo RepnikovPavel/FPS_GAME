@@ -1,10 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
-#include <fstream>
 
 #define LOG_FILE_PATH "C:\\FPS_LOG\\Log.txt"
-
-#define START_LOG_NOTEPAD_AT_END_OF_PROGRAM
 
 class FPS_API LoggingSystem
 {
@@ -14,7 +11,7 @@ private:
 public:
 	static LoggingSystem* Instance(const char* EventLogPath);
 public:
-	void WriteToLog(std::string SomeText);
+	void WriteToLog(std::string SomeText) const;
 public:
 	~LoggingSystem();
 private:
