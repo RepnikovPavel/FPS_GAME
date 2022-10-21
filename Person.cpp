@@ -4,8 +4,11 @@
 
 
 #define M_ACM_Jump "Jump"
-#define M_AXM_MoveForward "MoveForward"
-#define M_AXM_MoveRight "MoveRight"
+#define M_ACM_MoveForward "MoveForward"
+#define M_ACM_MoveBack "MoveBack"
+#define M_ACM_MoveRight "MoveRight"
+#define M_ACM_MoveLeft "MoveLeft"
+
 #define M_AXM_TurnCameraX "TurnCameraX"
 #define M_AXM_TurnCameraY "TurnCameraY"
 #define M_AXM_ChangeSpringArmLength "ChangeSpringArmLength"
@@ -32,7 +35,7 @@ APerson::APerson()
 	CameraComponentPtr->SetupAttachment(GetMySpringArm());
 	
 	LoadAndSetSkeletalMesh(PATH_SKELETAL_MESH_ARMS);
-	AssignSpringArmVaribles(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f),400.0f,3.0f);
+	AssignSpringArmVaribles(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f),init_arm_lenght,3.0f);
 	LoadAnimationAsset(PATH_ANIMATION_ASSET_FPS_IDLE);
 	
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
@@ -129,9 +132,11 @@ void APerson::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	
 	// movement callback functions:
 	PlayerInputComponent->BindAction(M_ACM_Jump,IE_Pressed,this,&APerson::ACM_Jump);
-	PlayerInputComponent->BindAxis(M_AXM_MoveForward,this,&APerson::AXM_MoveForward);
-	PlayerInputComponent->BindAxis(M_AXM_MoveRight,this,&APerson::AXM_MoveRight);
-
+	PlayerInputComponent->BindAction(M_ACM_MoveForward,IE_Pressed,this,&APerson::ACM_MoveForward);
+	PlayerInputComponent->BindAction(M_ACM_MoveBack,IE_Pressed,this,&APerson::ACM_MoveBack);
+	PlayerInputComponent->BindAction(M_ACM_MoveRight,IE_Pressed,this,&APerson::ACM_MoveRight);
+	PlayerInputComponent->BindAction(M_ACM_MoveLeft,IE_Pressed,this,&APerson::ACM_MoveLeft);
+	
 	//camera controll callback fucntions:
 	PlayerInputComponent->BindAxis(M_AXM_ChangeSpringArmLength,this,&APerson::AXM_ChangeSpringArmLength);
 	PlayerInputComponent->BindAxis(M_AXM_TurnCameraX,this,&APerson::AXM_TurnCameraX);
@@ -152,20 +157,59 @@ void APerson::ACM_Jump()
 	
 }
 	//axis mappings:
-void APerson::AXM_MoveForward(float AxisValue)
+void APerson::ACM_MoveForward()
 {
-
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(M_ACM_MoveForward, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
 }
-void APerson::AXM_MoveRight(float AxisValue)
+void APerson::ACM_MoveBack()
 {
-
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(M_ACM_MoveBack, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+}
+void APerson::ACM_MoveRight()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(M_ACM_MoveRight, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+}
+void APerson::ACM_MoveLeft()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(M_ACM_MoveLeft, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
 }
 
 //camera controll callback functions:
 	//axis mappings:
 void APerson::AXM_ChangeSpringArmLength(float AxisValue)
 {
-	
+	if(AxisValue==0.0){return;}
+	if (AxisValue>0.0)
+	{
+		if(SpringArmComponentPtr->TargetArmLength<(min_arm_lenght+50.0))
+		{
+			SpringArmComponentPtr->TargetArmLength = 0.0;
+		}
+		else
+		{
+			SpringArmComponentPtr->TargetArmLength = (SpringArmComponentPtr->TargetArmLength <= min_arm_lenght? min_arm_lenght:SpringArmComponentPtr->TargetArmLength/speed_of_changing_arm_length);
+		}
+	}
+	if(AxisValue<0.0)
+	{
+		if (SpringArmComponentPtr->TargetArmLength<(min_arm_lenght+50.0))
+		{
+			SpringArmComponentPtr->TargetArmLength += 50.0;
+		}
+		else
+		{
+			SpringArmComponentPtr->TargetArmLength = (SpringArmComponentPtr->TargetArmLength >= max_arm_lenght? max_arm_lenght:SpringArmComponentPtr->TargetArmLength*speed_of_changing_arm_length);
+		}
+		
+	}
 }
 void APerson::AXM_TurnCameraX(float AxisValue)
 {

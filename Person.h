@@ -42,14 +42,25 @@ private:
 		//action mappings:
 	void ACM_Jump();
 		//axis mappings:
-	void AXM_MoveForward(float AxisValue);
-	void AXM_MoveRight(float AxisValue);
+	void ACM_MoveForward();
+	void ACM_MoveBack();
+	void ACM_MoveRight();
+	void ACM_MoveLeft();
 	
 	//camera controll callback fucntions:
 		//axis mappings:	
 	void AXM_ChangeSpringArmLength(float AxisValue);
 	void AXM_TurnCameraX(float AxisValue);
 	void AXM_TurnCameraY(float AxisValue);
+
+	UPROPERTY(EditAnywhere)
+	float speed_of_changing_arm_length=1.1;
+	UPROPERTY(EditAnywhere)
+	float min_arm_lenght=0.0;
+	UPROPERTY(EditAnywhere)
+	float max_arm_lenght=2000.0;
+	UPROPERTY(EditAnywhere)
+	float init_arm_lenght=450.0;
 	
 	//animation callback functions:
 	void PlayFPSIdle();
