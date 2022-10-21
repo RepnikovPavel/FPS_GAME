@@ -1,12 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Person.h"
 #include <string>
 #include "LoggingSystem.h"
 
-#define ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
-#define CHECK_SUCCESS_OF_LOAD_DATA
 
 #define M_ACM_Jump "Jump"
 #define M_AXM_MoveForward "MoveForward"
@@ -18,9 +13,13 @@
 #define PATH_SKELETAL_MESH_ARMS "/Game/FPS_Content/Assets/Characters/Arms/Mesh/Mannequin/Mesh/SK_Mannequin_Arms"
 #define PATH_ANIMATION_ASSET_FPS_IDLE "/Game/FPS_Content/Assets/Characters/Arms/Arms_Animations/Arms_idle"
 
+#define ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+#define M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM 0.125
+
+#define CHECK_SUCCESS_OF_LOAD_DATA
+
 APerson::APerson()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	SkeletalMeshComponentPtr = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComponent");
@@ -37,6 +36,7 @@ APerson::APerson()
 	LoadAnimationAsset(PATH_ANIMATION_ASSET_FPS_IDLE);
 	
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
+	
 }
 
 // helper classes:
@@ -71,6 +71,20 @@ public:
 private:
 	TypeToLoad* _DataPtr;
 };
+
+const char* BoolToCStr(bool bool_value)
+{
+	return (bool_value?"true":"false");
+}
+
+void APerson::ScreenLog::PrintMessage(FString message, float duration, FColor color)
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, duration, color, message);
+	}
+}
+
 
 // Ctor functions
 void APerson::LoadAndSetSkeletalMesh(const char* PathToSkeletalMesh)
@@ -112,8 +126,7 @@ void APerson::Tick(float DeltaTime)
 void APerson::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-
+	
 	// movement callback functions:
 	PlayerInputComponent->BindAction(M_ACM_Jump,IE_Pressed,this,&APerson::ACM_Jump);
 	PlayerInputComponent->BindAxis(M_AXM_MoveForward,this,&APerson::AXM_MoveForward);
@@ -134,20 +147,18 @@ void APerson::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void APerson::ACM_Jump()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,"ACM Jump");
-	}
+	screen_log.PrintMessage(M_ACM_Jump, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
+	
 }
 	//axis mappings:
 void APerson::AXM_MoveForward(float AxisValue)
 {
-	
+
 }
 void APerson::AXM_MoveRight(float AxisValue)
 {
-	
+
 }
 
 //camera controll callback functions:
@@ -187,7 +198,4 @@ USpringArmComponent* APerson::GetMySpringArm() const
 	return SpringArmComponentPtr;
 }
 
-const char* BoolToCStr(bool bool_value)
-{
-	return (bool_value?"true":"false");
-}
+

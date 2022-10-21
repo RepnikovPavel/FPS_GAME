@@ -53,8 +53,6 @@ private:
 	
 	//animation callback functions:
 	void PlayFPSIdle();
-
-	
 	
 	//getters:
 private:
@@ -74,4 +72,11 @@ private:
 	//assets:
 	UPROPERTY(VisibleAnywhere)
 	UAnimationAsset* AnimationAssetPtr;
+
+private:
+	struct ScreenLog
+	{
+		void PrintMessage(FString message, float duration, FColor color);
+	};
+	ScreenLog screen_log;
 };
