@@ -138,10 +138,16 @@ void APerson::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	
 	// movement callback functions:
 	PlayerInputComponent->BindAction(M_ACM_Jump,IE_Pressed,this,&APerson::ACM_Jump);
+
+	
 	PlayerInputComponent->BindAction(M_ACM_MoveForward,IE_Pressed,this,&APerson::ACM_MoveForward);
+	PlayerInputComponent->BindAction(M_ACM_MoveForward,IE_Released,this,&APerson::ACM_StopMoveForward);
 	PlayerInputComponent->BindAction(M_ACM_MoveBack,IE_Pressed,this,&APerson::ACM_MoveBack);
+	PlayerInputComponent->BindAction(M_ACM_MoveBack,IE_Released,this,&APerson::ACM_StopMoveBack);
 	PlayerInputComponent->BindAction(M_ACM_MoveRight,IE_Pressed,this,&APerson::ACM_MoveRight);
+	PlayerInputComponent->BindAction(M_ACM_MoveRight,IE_Released,this,&APerson::ACM_StopMoveRight);
 	PlayerInputComponent->BindAction(M_ACM_MoveLeft,IE_Pressed,this,&APerson::ACM_MoveLeft);
+	PlayerInputComponent->BindAction(M_ACM_MoveLeft,IE_Released,this,&APerson::ACM_StopMoveLeft);
 	
 	//camera controll callback fucntions:
 	PlayerInputComponent->BindAxis(M_AXM_ChangeSpringArmLength,this,&APerson::AXM_ChangeSpringArmLength);
@@ -167,26 +173,59 @@ void APerson::ACM_MoveForward()
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_MoveForward, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
+	bmf=true;
+	
+}
+void APerson::ACM_StopMoveForward()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(FString("stop ")+M_ACM_MoveForward, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+	bmf=false;
 }
 void APerson::ACM_MoveBack()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_MoveBack, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
+	bmb=true;
 }
+void APerson::ACM_StopMoveBack()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(FString("stop ")+M_ACM_MoveBack, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+	bmb=false;
+}
+
 void APerson::ACM_MoveRight()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_MoveRight, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
+	bmr=true;
+}
+void APerson::ACM_StopMoveRight()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(FString("stop")+M_ACM_MoveRight, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+	bmr=false;
 }
 void APerson::ACM_MoveLeft()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_MoveLeft, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
+	bml=true;
 }
-
+void APerson::ACM_StopMoveLeft()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(FString("stop")+M_ACM_MoveLeft, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+	bml=false;
+}
 //camera controll callback functions:
 	//axis mappings:
 void APerson::AXM_ChangeSpringArmLength(float AxisValue)
@@ -231,9 +270,9 @@ void APerson::AXM_TurnCameraX(float AxisValue)
 }
 void APerson::AXM_TurnCameraY(float AxisValue)
 {
-
-	screen_log.PrintMessage(FString::SanitizeFloat(AxisValue),0.125f,FColor::White);
-	screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->GetRelativeRotation().Pitch), 0.125f,FColor::Green);
+	//
+	// screen_log.PrintMessage(FString::SanitizeFloat(AxisValue),0.125f,FColor::White);
+	// screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->GetRelativeRotation().Pitch), 0.125f,FColor::Green);
 	if (AxisValue!=0.0f)
 	{
 		auto current_rotation = SpringArmComponentPtr->GetRelativeRotation();

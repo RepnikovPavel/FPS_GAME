@@ -39,14 +39,27 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 private:
+
+	//movement physics
+	double v{0.0};
+	FVector3d v_vec{0.0,0.0,0.0};
+	
 	//movement callback functions:
 		//action mappings:
 	void ACM_Jump();
-		//axis mappings:
 	void ACM_MoveForward();
+	void ACM_StopMoveForward();
 	void ACM_MoveBack();
+	void ACM_StopMoveBack();
 	void ACM_MoveRight();
+	void ACM_StopMoveRight();
 	void ACM_MoveLeft();
+	void ACM_StopMoveLeft();
+	//movement callback state:
+	bool bmf=false;
+	bool bmb=false;
+	bool bmr=false;
+	bool bml=false;
 	
 	//camera controll callback fucntions:
 		//axis mappings:	
@@ -56,11 +69,13 @@ private:
 	
 	//camera state:
 		//sptring arm component state
+public:
 	UPROPERTY(EditAnywhere,Category="SpringArmLag")
 	float camera_lag_speed = 10.0f;
 
 	UPROPERTY(EditAnywhere, Category="SpringArmLag")
 	float camera_rotation_lag_speed = 10.0f;
+private:
 			//zoom
 	const std::array<float,5> lenghts{200.0,450.0,650.0,850.0,1050.0};
 	size_t current_pos=1;
