@@ -204,70 +204,51 @@ void APerson::AXM_ChangeSpringArmLength(float AxisValue)
 	}
 	if(AxisValue<0.0)
 	{
-		if (current_pos<5)
+		if (current_pos<lenghts.size()-1)
 		{
 			current_pos+=1;
 			SpringArmComponentPtr->TargetArmLength=lenghts[current_pos];
 			screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->TargetArmLength),0.125f,FColor::White);
 		}
 	}
+	auto current_theta_rotation = SpringArmComponentPtr->GetRelativeRotation().Pitch;
+	if (current_theta_rotation<min_thetas[current_pos])
+	{
+		SpringArmComponentPtr->SetRelativeRotation(FRotator(min_thetas[current_pos],0.0f,0.0f));
+	}
+	else if(current_theta_rotation>max_thetas[current_pos])
+	{
+		SpringArmComponentPtr->SetRelativeRotation(FRotator(max_thetas[current_pos],0.0f,0.0f));
+	}
+	
 }
 void APerson::AXM_TurnCameraX(float AxisValue)
 {
 	if (AxisValue!=0.0f)
 	{
-		auto current_rotation = SpringArmComponentPtr->GetRelativeRotation();
-		if (AxisValue>0.0f)
-		{
-			if (current_rotation.Yaw<max_phi)
-			{
-				SpringArmComponentPtr->AddRelativeRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
-			}
-			else
-			{
-				SpringArmComponentPtr->SetRelativeRotation(FRotator(0.0f,max_phi,0.0f));
-			}
-		}
-		else if (AxisValue<0.0f)
-		{
-			if (current_rotation.Yaw>min_phi)
-			{
-				SpringArmComponentPtr->AddRelativeRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
-			}
-			else
-			{
-				SpringArmComponentPtr->SetRelativeRotation(FRotator(0.0f,min_phi,0.0f));
-			}
-		}
+		SpringArmComponentPtr->AddRelativeRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
 	}
 }
 void APerson::AXM_TurnCameraY(float AxisValue)
 {
 
 	screen_log.PrintMessage(FString::SanitizeFloat(AxisValue),0.125f,FColor::White);
+	screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->GetRelativeRotation().Pitch), 0.125f,FColor::Green);
 	if (AxisValue!=0.0f)
 	{
 		auto current_rotation = SpringArmComponentPtr->GetRelativeRotation();
 		if (AxisValue<0.0f)
 		{
-			if (current_rotation.Pitch>min_theta)
+			if (current_rotation.Pitch<max_thetas[current_pos])
 			{
 				SpringArmComponentPtr->AddRelativeRotation(FRotator(-AxisValue*mouse_sensitivity,0.0f,0.0f));
-			}
-			else
-			{
-				SpringArmComponentPtr->SetRelativeRotation(FRotator(min_theta,0.0f,0.0f));
 			}
 		}
 		else if (AxisValue>0.0f)
 		{
-			if (current_rotation.Pitch<max_theta)
+			if (current_rotation.Pitch>min_thetas[current_pos])
 			{
 				SpringArmComponentPtr->AddRelativeRotation(FRotator(-AxisValue*mouse_sensitivity,0.0f,0.0f));
-			}
-			else
-			{
-				SpringArmComponentPtr->SetRelativeRotation(FRotator(max_theta,0.0f,0.0f));
 			}
 		}
 	}

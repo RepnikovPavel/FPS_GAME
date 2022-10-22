@@ -62,20 +62,15 @@ private:
 	UPROPERTY(EditAnywhere, Category="SpringArmLag")
 	float camera_rotation_lag_speed = 10.0f;
 			//zoom
-	const std::array<float,6> lenghts{0.0,300.0,450.0,650.0,850.0,1050.0};
-	size_t current_pos=2;
+	const std::array<float,5> lenghts{200.0,450.0,650.0,850.0,1050.0};
+	size_t current_pos=1;
 			// sprint arm rotation state
 	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
 	float mouse_sensitivity = 1.0f;
-	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
-	float max_theta = 15.0f;
-	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
-	float min_theta = -85.0f;
-	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
-	float max_phi = 85.0f;
-	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
-	float min_phi = -85.0f;
-		
+	
+	const std::array<float,5> max_thetas{45.0f,15.0f,10.0f,5.0f,0.0f};
+	const std::array<float,5> min_thetas{-85.0f,-85.0f,-85.0f,-85.0f,-85.0f};
+	
 	//animation callback functions:
 	void PlayFPSIdle();
 	
