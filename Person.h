@@ -7,6 +7,7 @@
 
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include <array>
 #include "Person.generated.h"
 
 
@@ -22,7 +23,7 @@ public:
 	//ctor functions:
 private:
 	void LoadAndSetSkeletalMesh(const char* PathToSkeletalMesh);
-	void AssignSpringArmVaribles(const FVector& RelLocation,const FRotator& RelRotation,const double ArmLength, const double CameraLagSpeed);
+	void AssignSpringArmVaribles(const FVector& RelLocation,const FRotator& RelRotation,const float ArmLength, const float CameraLagSpeed, const float CameraRotationLagSpeed);
 	void LoadAnimationAsset(const char* PathToAnimationAsset);
 
 
@@ -52,16 +53,29 @@ private:
 	void AXM_ChangeSpringArmLength(float AxisValue);
 	void AXM_TurnCameraX(float AxisValue);
 	void AXM_TurnCameraY(float AxisValue);
-
-	UPROPERTY(EditAnywhere)
-	float speed_of_changing_arm_length=1.1;
-	UPROPERTY(EditAnywhere)
-	float min_arm_lenght=0.0;
-	UPROPERTY(EditAnywhere)
-	float max_arm_lenght=2000.0;
-	UPROPERTY(EditAnywhere)
-	float init_arm_lenght=450.0;
 	
+	//camera state:
+		//sptring arm component state
+	UPROPERTY(EditAnywhere,Category="SpringArmLag")
+	float camera_lag_speed = 10.0f;
+
+	UPROPERTY(EditAnywhere, Category="SpringArmLag")
+	float camera_rotation_lag_speed = 10.0f;
+			//zoom
+	const std::array<float,6> lenghts{0.0,300.0,450.0,650.0,850.0,1050.0};
+	size_t current_pos=2;
+			// sprint arm rotation state
+	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
+	float mouse_sensitivity = 1.0f;
+	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
+	float max_theta = 15.0f;
+	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
+	float min_theta = -85.0f;
+	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
+	float max_phi = 85.0f;
+	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
+	float min_phi = -85.0f;
+		
 	//animation callback functions:
 	void PlayFPSIdle();
 	

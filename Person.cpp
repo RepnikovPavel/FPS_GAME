@@ -11,6 +11,7 @@
 
 #define M_AXM_TurnCameraX "TurnCameraX"
 #define M_AXM_TurnCameraY "TurnCameraY"
+
 #define M_AXM_ChangeSpringArmLength "ChangeSpringArmLength"
 
 #define PATH_SKELETAL_MESH_ARMS "/Game/FPS_Content/Assets/Characters/Arms/Mesh/Mannequin/Mesh/SK_Mannequin_Arms"
@@ -35,7 +36,7 @@ APerson::APerson()
 	CameraComponentPtr->SetupAttachment(GetMySpringArm());
 	
 	LoadAndSetSkeletalMesh(PATH_SKELETAL_MESH_ARMS);
-	AssignSpringArmVaribles(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f),init_arm_lenght,3.0f);
+	
 	LoadAnimationAsset(PATH_ANIMATION_ASSET_FPS_IDLE);
 	
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
@@ -95,7 +96,7 @@ void APerson::LoadAndSetSkeletalMesh(const char* PathToSkeletalMesh)
 	Loader<USkeletalMesh> Loader(FString(strlen(PathToSkeletalMesh),PathToSkeletalMesh));
 	GetMyMesh()->SetSkeletalMesh(Loader.GetDataPtr());
 }
-void APerson::AssignSpringArmVaribles(const FVector& RelLocation,const FRotator& RelRotation,const double ArmLength, const double CameraLagSpeed)
+void APerson::AssignSpringArmVaribles(const FVector& RelLocation,const FRotator& RelRotation,const float ArmLength, const float CameraLagSpeed, const float CameraRotationLagSpeed)
 {
 	SpringArmComponentPtr->SetRelativeLocationAndRotation(RelLocation,RelRotation);
 	SpringArmComponentPtr->TargetArmLength = ArmLength;
@@ -104,7 +105,11 @@ void APerson::AssignSpringArmVaribles(const FVector& RelLocation,const FRotator&
 		SpringArmComponentPtr->bEnableCameraLag = true;
 		SpringArmComponentPtr->CameraLagSpeed= CameraLagSpeed;
 	}
-	
+	if (CameraRotationLagSpeed!=0.0)
+	{
+		SpringArmComponentPtr->bEnableCameraRotationLag=true;
+		SpringArmComponentPtr->CameraRotationLagSpeed = CameraRotationLagSpeed;
+	}
 }
 void APerson::LoadAnimationAsset(const char* PathToAnimationAsset)
 {
@@ -117,6 +122,7 @@ void APerson::LoadAnimationAsset(const char* PathToAnimationAsset)
 void APerson::BeginPlay()
 {
 	Super::BeginPlay();
+	AssignSpringArmVaribles(FVector(0.0f, 0.0f, 50.0f), FRotator(-30.0f, 0.0f, 0.0f),lenghts[current_pos],camera_lag_speed,camera_rotation_lag_speed);
 	
 }
 
@@ -141,11 +147,10 @@ void APerson::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis(M_AXM_ChangeSpringArmLength,this,&APerson::AXM_ChangeSpringArmLength);
 	PlayerInputComponent->BindAxis(M_AXM_TurnCameraX,this,&APerson::AXM_TurnCameraX);
 	PlayerInputComponent->BindAxis(M_AXM_TurnCameraY,this,&APerson::AXM_TurnCameraY);
-	
 	// animations callback funstions functionality
 	PlayerInputComponent->BindAction("IDLE_full_stamina",IE_Pressed,this,&APerson::PlayFPSIdle);
 
-}
+} 
 
 //movement callback functions:
 	//action mappings:
@@ -186,39 +191,91 @@ void APerson::ACM_MoveLeft()
 	//axis mappings:
 void APerson::AXM_ChangeSpringArmLength(float AxisValue)
 {
+	
 	if(AxisValue==0.0){return;}
 	if (AxisValue>0.0)
 	{
-		if(SpringArmComponentPtr->TargetArmLength<(min_arm_lenght+50.0))
+		if (current_pos>0)
 		{
-			SpringArmComponentPtr->TargetArmLength = 0.0;
-		}
-		else
-		{
-			SpringArmComponentPtr->TargetArmLength = (SpringArmComponentPtr->TargetArmLength <= min_arm_lenght? min_arm_lenght:SpringArmComponentPtr->TargetArmLength/speed_of_changing_arm_length);
+			current_pos -= 1;
+			SpringArmComponentPtr->TargetArmLength=lenghts[current_pos];
+			screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->TargetArmLength),0.125f,FColor::White);
 		}
 	}
 	if(AxisValue<0.0)
 	{
-		if (SpringArmComponentPtr->TargetArmLength<(min_arm_lenght+50.0))
+		if (current_pos<5)
 		{
-			SpringArmComponentPtr->TargetArmLength += 50.0;
+			current_pos+=1;
+			SpringArmComponentPtr->TargetArmLength=lenghts[current_pos];
+			screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->TargetArmLength),0.125f,FColor::White);
 		}
-		else
-		{
-			SpringArmComponentPtr->TargetArmLength = (SpringArmComponentPtr->TargetArmLength >= max_arm_lenght? max_arm_lenght:SpringArmComponentPtr->TargetArmLength*speed_of_changing_arm_length);
-		}
-		
 	}
 }
 void APerson::AXM_TurnCameraX(float AxisValue)
 {
-	
+	if (AxisValue!=0.0f)
+	{
+		auto current_rotation = SpringArmComponentPtr->GetRelativeRotation();
+		if (AxisValue>0.0f)
+		{
+			if (current_rotation.Yaw<max_phi)
+			{
+				SpringArmComponentPtr->AddRelativeRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
+			}
+			else
+			{
+				SpringArmComponentPtr->SetRelativeRotation(FRotator(0.0f,max_phi,0.0f));
+			}
+		}
+		else if (AxisValue<0.0f)
+		{
+			if (current_rotation.Yaw>min_phi)
+			{
+				SpringArmComponentPtr->AddRelativeRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
+			}
+			else
+			{
+				SpringArmComponentPtr->SetRelativeRotation(FRotator(0.0f,min_phi,0.0f));
+			}
+		}
+	}
 }
 void APerson::AXM_TurnCameraY(float AxisValue)
 {
 
+	screen_log.PrintMessage(FString::SanitizeFloat(AxisValue),0.125f,FColor::White);
+	if (AxisValue!=0.0f)
+	{
+		auto current_rotation = SpringArmComponentPtr->GetRelativeRotation();
+		if (AxisValue<0.0f)
+		{
+			if (current_rotation.Pitch>min_theta)
+			{
+				SpringArmComponentPtr->AddRelativeRotation(FRotator(-AxisValue*mouse_sensitivity,0.0f,0.0f));
+			}
+			else
+			{
+				SpringArmComponentPtr->SetRelativeRotation(FRotator(min_theta,0.0f,0.0f));
+			}
+		}
+		else if (AxisValue>0.0f)
+		{
+			if (current_rotation.Pitch<max_theta)
+			{
+				SpringArmComponentPtr->AddRelativeRotation(FRotator(-AxisValue*mouse_sensitivity,0.0f,0.0f));
+			}
+			else
+			{
+				SpringArmComponentPtr->SetRelativeRotation(FRotator(max_theta,0.0f,0.0f));
+			}
+		}
+	}
+	
 }
+
+
+
 
 //animations callback functions:
 void APerson::PlayFPSIdle()
