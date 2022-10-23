@@ -1,18 +1,23 @@
 #include "Person.h"
 #include <string>
+#include <Math/Rotator.h>
 #include "LoggingSystem.h"
+#include "../../Plugins/Developer/RiderLink/Source/RD/thirdparty/variant/include/mpark/lib.hpp"
 
 
-#define M_ACM_Jump "Jump"
-#define M_ACM_MoveForward "MoveForward"
-#define M_ACM_MoveBack "MoveBack"
-#define M_ACM_MoveRight "MoveRight"
-#define M_ACM_MoveLeft "MoveLeft"
+#define M_ACM_Jump					"Jump"
+#define M_ACM_MoveForward			"MoveForward"
+#define M_ACM_MoveBack				"MoveBack"
+#define M_ACM_MoveRight				"MoveRight"
+#define M_ACM_MoveLeft				"MoveLeft"
+#define M_ACM_RMB					"RMB"
+#define M_ACM_Shift					"Shift"
+#define M_ACM_Ctrl					"Ctrl"
 
-#define M_AXM_TurnCameraX "TurnCameraX"
-#define M_AXM_TurnCameraY "TurnCameraY"
+#define M_AXM_TurnCameraX			"TurnCameraX"
+#define M_AXM_TurnCameraY			"TurnCameraY"
 
-#define M_AXM_ChangeSpringArmLength "ChangeSpringArmLength"
+#define M_AXM_ChangeSpringArmLength	"ChangeSpringArmLength"
 
 #define PATH_SKELETAL_MESH_ARMS "/Game/FPS_Content/Assets/Characters/Arms/Mesh/Mannequin/Mesh/SK_Mannequin_Arms"
 #define PATH_ANIMATION_ASSET_FPS_IDLE "/Game/FPS_Content/Assets/Characters/Arms/Arms_Animations/Arms_idle"
@@ -39,7 +44,7 @@ APerson::APerson()
 	
 	LoadAnimationAsset(PATH_ANIMATION_ASSET_FPS_IDLE);
 	
-	AutoPossessPlayer = EAutoReceiveInput::Player0;
+	// AutoPossessPlayer = EAutoReceiveInput::Player0;
 	
 }
 
@@ -122,13 +127,29 @@ void APerson::LoadAnimationAsset(const char* PathToAnimationAsset)
 void APerson::BeginPlay()
 {
 	Super::BeginPlay();
-	AssignSpringArmVaribles(FVector(0.0f, 0.0f, 50.0f), FRotator(-30.0f, 0.0f, 0.0f),lenghts[current_pos],camera_lag_speed,camera_rotation_lag_speed);
-	
+	AssignSpringArmVaribles(FVector(0.0f, 0.0f, 50.0f), FRotator(-30.0f, 0.0f, 0.0f),camera_state.lenghts[camera_state.current_pos],camera_lag_speed,camera_rotation_lag_speed);
 }
 
 void APerson::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	//movement physics part
+	signed short x = movement_state._xy_pair[0];
+	signed short y = movement_state._xy_pair[1];
+	if ((x==0&&y==0)==false)
+	{
+		if (movement_state.is_v_changed==false)
+		{
+			AddActorLocalOffset(movement_state.GetCPVM()*(GetActorForwardVector().RotateAngleAxis(movement_state.current_angle,FVector(0,0,-1)))*DeltaTime);
+		}
+		else
+		{
+			movement_state.UpdateCurrentAngle();
+			AddActorLocalOffset(movement_state.GetCPVM()*(GetActorForwardVector().RotateAngleAxis(movement_state.current_angle,FVector(0,0,-1)))*DeltaTime);
+			movement_state.is_v_changed=false;	
+		}
+	}
 
 }
 
@@ -138,8 +159,6 @@ void APerson::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	
 	// movement callback functions:
 	PlayerInputComponent->BindAction(M_ACM_Jump,IE_Pressed,this,&APerson::ACM_Jump);
-
-	
 	PlayerInputComponent->BindAction(M_ACM_MoveForward,IE_Pressed,this,&APerson::ACM_MoveForward);
 	PlayerInputComponent->BindAction(M_ACM_MoveForward,IE_Released,this,&APerson::ACM_StopMoveForward);
 	PlayerInputComponent->BindAction(M_ACM_MoveBack,IE_Pressed,this,&APerson::ACM_MoveBack);
@@ -148,6 +167,10 @@ void APerson::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction(M_ACM_MoveRight,IE_Released,this,&APerson::ACM_StopMoveRight);
 	PlayerInputComponent->BindAction(M_ACM_MoveLeft,IE_Pressed,this,&APerson::ACM_MoveLeft);
 	PlayerInputComponent->BindAction(M_ACM_MoveLeft,IE_Released,this,&APerson::ACM_StopMoveLeft);
+	PlayerInputComponent->BindAction(M_ACM_Shift,IE_Pressed,this,&APerson::ACM_Shift);
+	PlayerInputComponent->BindAction(M_ACM_Shift,IE_Released,this,&APerson::ACM_StopShift);
+	PlayerInputComponent->BindAction(M_ACM_Ctrl,IE_Pressed,this,&APerson::ACM_Ctrl);
+	PlayerInputComponent->BindAction(M_ACM_Ctrl,IE_Released,this,&APerson::ACM_StopCtrl);
 	
 	//camera controll callback fucntions:
 	PlayerInputComponent->BindAxis(M_AXM_ChangeSpringArmLength,this,&APerson::AXM_ChangeSpringArmLength);
@@ -156,7 +179,61 @@ void APerson::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// animations callback funstions functionality
 	PlayerInputComponent->BindAction("IDLE_full_stamina",IE_Pressed,this,&APerson::PlayFPSIdle);
 
+	PlayerInputComponent->BindAction(M_ACM_RMB, IE_Pressed,this,&APerson::RMB_pressed);
+	PlayerInputComponent->BindAction(M_ACM_RMB, IE_Released,this,&APerson::RMB_released);
 } 
+
+double APerson::MovementState::GetCPVM()
+{
+	return _possible_speeds[_current_possible_veclocity_index];
+}
+void APerson::MovementState::ChangeCPVM(size_t new_v_state_index)
+{
+	if (new_v_state_index<_possible_speeds.size()&&new_v_state_index >= 0)
+	{
+		_current_possible_veclocity_index = new_v_state_index;
+	}	
+}
+
+void APerson::MovementState::UpdateCurrentAngle()
+{
+	signed short x = _xy_pair[0];
+	signed short y = _xy_pair[1];
+	if (x==0&&y==1)
+	{
+		current_angle = 0.0;
+	}
+	else if (x==1&&y==1)
+	{
+		current_angle=-45.0;
+	}
+	else if (x==-1&&y==1)
+	{
+		current_angle=45.0;
+	}
+	else if (x==1&&y==0)
+	{
+		current_angle=-90.0;
+	}
+	else if (x==-1&&y==0)
+	{
+		current_angle=90.0;
+	}
+	else if(x==1&&y==-1)
+	{
+		current_angle=-135.0;
+	}
+	else if(x==-1&&y==-1)
+	{
+		current_angle=135.0;
+	}
+	else if(x==0&&y==-1)
+	{
+		current_angle=180.0;
+	}
+}
+
+
 
 //movement callback functions:
 	//action mappings:
@@ -173,29 +250,32 @@ void APerson::ACM_MoveForward()
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_MoveForward, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-	bmf=true;
-	
+	movement_state._xy_pair[1]+=1;
+	movement_state.is_v_changed=true;
 }
 void APerson::ACM_StopMoveForward()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(FString("stop ")+M_ACM_MoveForward, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-	bmf=false;
+	movement_state._xy_pair[1]-=1;
+	movement_state.is_v_changed=true;
 }
 void APerson::ACM_MoveBack()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_MoveBack, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-	bmb=true;
+	movement_state._xy_pair[1]-=1;
+	movement_state.is_v_changed=true;
 }
 void APerson::ACM_StopMoveBack()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(FString("stop ")+M_ACM_MoveBack, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-	bmb=false;
+	movement_state._xy_pair[1]+=1;
+	movement_state.is_v_changed=true;
 }
 
 void APerson::ACM_MoveRight()
@@ -203,28 +283,60 @@ void APerson::ACM_MoveRight()
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_MoveRight, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-	bmr=true;
+	movement_state._xy_pair[0]+=1;
+	movement_state.is_v_changed=true;
 }
 void APerson::ACM_StopMoveRight()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(FString("stop")+M_ACM_MoveRight, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-	bmr=false;
+	movement_state._xy_pair[0]-=1;
+	movement_state.is_v_changed=true;
 }
 void APerson::ACM_MoveLeft()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_MoveLeft, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-	bml=true;
+	movement_state._xy_pair[0]-=1;
+	movement_state.is_v_changed=true;
 }
 void APerson::ACM_StopMoveLeft()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(FString("stop")+M_ACM_MoveLeft, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-	bml=false;
+	movement_state._xy_pair[0]+=1;
+	movement_state.is_v_changed=true;
+}
+void APerson::ACM_Shift()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(M_ACM_Shift, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+	
+}
+void APerson::ACM_StopShift()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(FString("stop")+M_ACM_Shift, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+	
+}
+void APerson::ACM_Ctrl()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(M_ACM_Ctrl, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+	
+}
+void APerson::ACM_StopCtrl()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(FString("stop")+M_ACM_Ctrl, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+	
 }
 //camera controll callback functions:
 	//axis mappings:
@@ -234,30 +346,30 @@ void APerson::AXM_ChangeSpringArmLength(float AxisValue)
 	if(AxisValue==0.0){return;}
 	if (AxisValue>0.0)
 	{
-		if (current_pos>0)
+		if (camera_state.current_pos>0)
 		{
-			current_pos -= 1;
-			SpringArmComponentPtr->TargetArmLength=lenghts[current_pos];
+			camera_state.current_pos -= 1;
+			SpringArmComponentPtr->TargetArmLength=camera_state.lenghts[camera_state.current_pos];
 			screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->TargetArmLength),0.125f,FColor::White);
 		}
 	}
 	if(AxisValue<0.0)
 	{
-		if (current_pos<lenghts.size()-1)
+		if (camera_state.current_pos<camera_state.lenghts.size()-1)
 		{
-			current_pos+=1;
-			SpringArmComponentPtr->TargetArmLength=lenghts[current_pos];
+			camera_state.current_pos+=1;
+			SpringArmComponentPtr->TargetArmLength=camera_state.lenghts[camera_state.current_pos];
 			screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->TargetArmLength),0.125f,FColor::White);
 		}
 	}
 	auto current_theta_rotation = SpringArmComponentPtr->GetRelativeRotation().Pitch;
-	if (current_theta_rotation<min_thetas[current_pos])
+	if (current_theta_rotation<camera_state.min_thetas[camera_state.current_pos])
 	{
-		SpringArmComponentPtr->SetRelativeRotation(FRotator(min_thetas[current_pos],0.0f,0.0f));
+		SpringArmComponentPtr->SetRelativeRotation(FRotator(camera_state.min_thetas[camera_state.current_pos],0.0f,0.0f));
 	}
-	else if(current_theta_rotation>max_thetas[current_pos])
+	else if(current_theta_rotation>camera_state.max_thetas[camera_state.current_pos])
 	{
-		SpringArmComponentPtr->SetRelativeRotation(FRotator(max_thetas[current_pos],0.0f,0.0f));
+		SpringArmComponentPtr->SetRelativeRotation(FRotator(camera_state.max_thetas[camera_state.current_pos],0.0f,0.0f));
 	}
 	
 }
@@ -278,14 +390,14 @@ void APerson::AXM_TurnCameraY(float AxisValue)
 		auto current_rotation = SpringArmComponentPtr->GetRelativeRotation();
 		if (AxisValue<0.0f)
 		{
-			if (current_rotation.Pitch<max_thetas[current_pos])
+			if (current_rotation.Pitch<camera_state.max_thetas[camera_state.current_pos])
 			{
 				SpringArmComponentPtr->AddRelativeRotation(FRotator(-AxisValue*mouse_sensitivity,0.0f,0.0f));
 			}
 		}
 		else if (AxisValue>0.0f)
 		{
-			if (current_rotation.Pitch>min_thetas[current_pos])
+			if (current_rotation.Pitch>camera_state.min_thetas[camera_state.current_pos])
 			{
 				SpringArmComponentPtr->AddRelativeRotation(FRotator(-AxisValue*mouse_sensitivity,0.0f,0.0f));
 			}
@@ -294,6 +406,20 @@ void APerson::AXM_TurnCameraY(float AxisValue)
 	
 }
 
+void APerson::RMB_pressed()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(M_ACM_RMB, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+
+}
+void APerson::RMB_released()
+{
+#ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
+	screen_log.PrintMessage(FString("stop ")+M_ACM_RMB, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
+#endif
+
+}
 
 
 

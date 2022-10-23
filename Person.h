@@ -41,8 +41,23 @@ public:
 private:
 
 	//movement physics
-	double v{0.0};
-	FVector3d v_vec{0.0,0.0,0.0};
+	class MovementState
+	{
+		//CPVM is current possible velocity modulus
+	public:
+		double GetCPVM();
+		void ChangeCPVM(size_t new_v_state_index);//
+		std::array<signed short,2> _xy_pair{0,0};
+		bool is_v_changed{false};
+		double current_angle{0.0};
+		void UpdateCurrentAngle();
+	private:
+		std::array<double,3> _possible_speeds{194.444,250.000,361.111};//sm/sek
+		size_t _current_possible_veclocity_index{1};
+	};
+	MovementState movement_state;
+
+	
 	
 	//movement callback functions:
 		//action mappings:
@@ -55,20 +70,19 @@ private:
 	void ACM_StopMoveRight();
 	void ACM_MoveLeft();
 	void ACM_StopMoveLeft();
-	//movement callback state:
-	bool bmf=false;
-	bool bmb=false;
-	bool bmr=false;
-	bool bml=false;
+	void ACM_Shift();
+	void ACM_StopShift();
+	void ACM_Ctrl();
+	void ACM_StopCtrl();
 	
 	//camera controll callback fucntions:
-		//axis mappings:	
 	void AXM_ChangeSpringArmLength(float AxisValue);
+	// mixed actions:
 	void AXM_TurnCameraX(float AxisValue);
 	void AXM_TurnCameraY(float AxisValue);
-	
-	//camera state:
-		//sptring arm component state
+	void RMB_pressed();
+	void RMB_released();
+
 public:
 	UPROPERTY(EditAnywhere,Category="SpringArmLag")
 	float camera_lag_speed = 10.0f;
@@ -76,15 +90,19 @@ public:
 	UPROPERTY(EditAnywhere, Category="SpringArmLag")
 	float camera_rotation_lag_speed = 10.0f;
 private:
-			//zoom
-	const std::array<float,5> lenghts{200.0,450.0,650.0,850.0,1050.0};
-	size_t current_pos=1;
-			// sprint arm rotation state
+
+	class CameraState
+	{
+	public:
+		const std::array<float,5> lenghts{200.0,450.0,650.0,850.0,1050.0};
+		size_t current_pos{1};
+		const std::array<float,5> max_thetas{45.0f,15.0f,10.0f,5.0f,0.0f};
+		const std::array<float,5> min_thetas{-85.0f,-85.0f,-85.0f,-85.0f,-85.0f};
+	};
+	CameraState camera_state;
+	// mouse state
 	UPROPERTY(EditAnywhere,Category="RotateSpringArm")
 	float mouse_sensitivity = 1.0f;
-	
-	const std::array<float,5> max_thetas{45.0f,15.0f,10.0f,5.0f,0.0f};
-	const std::array<float,5> min_thetas{-85.0f,-85.0f,-85.0f,-85.0f,-85.0f};
 	
 	//animation callback functions:
 	void PlayFPSIdle();
