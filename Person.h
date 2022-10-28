@@ -8,6 +8,8 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include <array>
+
+#include "Components/CapsuleComponent.h"
 #include "Person.generated.h"
 
 
@@ -98,6 +100,7 @@ private:
 		size_t current_pos{1};
 		const std::array<float,5> max_thetas{45.0f,15.0f,10.0f,5.0f,0.0f};
 		const std::array<float,5> min_thetas{-85.0f,-85.0f,-85.0f,-85.0f,-85.0f};
+		bool free_camera_mod = false;
 	};
 	CameraState camera_state;
 	// mouse state
@@ -113,9 +116,12 @@ private:
 	USpringArmComponent* GetMySpringArm() const;
 private:
 	//components:
-	UPROPERTY(VisibleAnywhere)
+	// UPROPERTY(EditAnywhere)
+	// UCapsuleComponent* CapsuleComponentPtr;
+public:
+	UPROPERTY(BlueprintReadOnly)
 	USkeletalMeshComponent* SkeletalMeshComponentPtr;
-	
+private:
 	UPROPERTY(EditAnywhere)
 	USpringArmComponent* SpringArmComponentPtr; 
 

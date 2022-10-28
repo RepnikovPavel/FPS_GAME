@@ -1,6 +1,7 @@
 #include "Person.h"
 #include <string>
 #include <Math/Rotator.h>
+#include <cmath>
 #include "LoggingSystem.h"
 #include "../../Plugins/Developer/RiderLink/Source/RD/thirdparty/variant/include/mpark/lib.hpp"
 
@@ -31,13 +32,16 @@ APerson::APerson()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	SkeletalMeshComponentPtr = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComponent");
+	// CapsuleComponentPtr = CreateDefaultSubobject<UCapsuleComponent>("CapsuleComponent",true);
+	// CapsuleComponentPtr->SetupAttachment(GetRootComponent());
+	
+	SkeletalMeshComponentPtr = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComponent",true);
 	SkeletalMeshComponentPtr->SetupAttachment(GetRootComponent());
 	
-	SpringArmComponentPtr=CreateDefaultSubobject<USpringArmComponent>("SpringArmComponent");
+	SpringArmComponentPtr=CreateDefaultSubobject<USpringArmComponent>("SpringArmComponent",true);
 	SpringArmComponentPtr->SetupAttachment(GetMyMesh());
 	
-	CameraComponentPtr = CreateDefaultSubobject<UCameraComponent>("CameraComponent");
+	CameraComponentPtr = CreateDefaultSubobject<UCameraComponent>("CameraComponent",true);
 	CameraComponentPtr->SetupAttachment(GetMySpringArm());
 	
 	LoadAndSetSkeletalMesh(PATH_SKELETAL_MESH_ARMS);
@@ -96,6 +100,7 @@ void APerson::ScreenLog::PrintMessage(FString message, float duration, FColor co
 
 
 // Ctor functions
+
 void APerson::LoadAndSetSkeletalMesh(const char* PathToSkeletalMesh)
 {
 	Loader<USkeletalMesh> Loader(FString(strlen(PathToSkeletalMesh),PathToSkeletalMesh));
@@ -127,7 +132,28 @@ void APerson::LoadAnimationAsset(const char* PathToAnimationAsset)
 void APerson::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// CapsuleComponentPtr = CreateDefaultSubobject<UCapsuleComponent>("CapsuleComponent",true);
+	// CapsuleComponentPtr->SetupAttachment(GetRootComponent());
+	//
+	// SkeletalMeshComponentPtr = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComponent",true);
+	// SkeletalMeshComponentPtr->SetupAttachment(GetRootComponent());
+	//
+	// SpringArmComponentPtr=CreateDefaultSubobject<USpringArmComponent>("SpringArmComponent",true);
+	// SpringArmComponentPtr->SetupAttachment(GetMyMesh());
+	//
+	// CameraComponentPtr = CreateDefaultSubobject<UCameraComponent>("CameraComponent",true);
+	// CameraComponentPtr->SetupAttachment(GetMySpringArm());
+	//
+	// LoadAndSetSkeletalMesh(PATH_SKELETAL_MESH_ARMS);
+	// LoadAnimationAsset(PATH_ANIMATION_ASSET_FPS_IDLE);
+	
 	AssignSpringArmVaribles(FVector(0.0f, 0.0f, 50.0f), FRotator(-30.0f, 0.0f, 0.0f),camera_state.lenghts[camera_state.current_pos],camera_lag_speed,camera_rotation_lag_speed);
+
+	// //bebug
+	// CapsuleComponentPtr->SetVisibility(true);
+	// CapsuleComponentPtr->SetHiddenInGame(false);
+
 }
 
 void APerson::Tick(float DeltaTime)
@@ -377,30 +403,59 @@ void APerson::AXM_TurnCameraX(float AxisValue)
 {
 	if (AxisValue!=0.0f)
 	{
-		SpringArmComponentPtr->AddRelativeRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
+		if (camera_state.free_camera_mod==true)
+		{
+			SpringArmComponentPtr->AddRelativeRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
+		}
+		else
+		{
+			SkeletalMeshComponentPtr->AddLocalRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
+			// SkeletalMeshComponentPtr->AddRelativeRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
+			// SpringArmComponentPtr->AddLocalRotation(FRotator(0.0f,AxisValue*mouse_sensitivity,0.0f));
+		}
 	}
 }
 void APerson::AXM_TurnCameraY(float AxisValue)
 {
-	//
-	// screen_log.PrintMessage(FString::SanitizeFloat(AxisValue),0.125f,FColor::White);
-	// screen_log.PrintMessage(FString::SanitizeFloat(SpringArmComponentPtr->GetRelativeRotation().Pitch), 0.125f,FColor::Green);
 	if (AxisValue!=0.0f)
 	{
-		auto current_rotation = SpringArmComponentPtr->GetRelativeRotation();
-		if (AxisValue<0.0f)
+		if (camera_state.free_camera_mod==true)
 		{
-			if (current_rotation.Pitch<camera_state.max_thetas[camera_state.current_pos])
+			const FRotator current_camera_pos = SpringArmComponentPtr->GetRelativeRotation();
+			if (AxisValue<0.0f)
 			{
-				SpringArmComponentPtr->AddRelativeRotation(FRotator(-AxisValue*mouse_sensitivity,0.0f,0.0f));
+				if (current_camera_pos.Pitch>camera_state.min_thetas[camera_state.current_pos])
+				{
+					const double new_camera_pos = current_camera_pos.Pitch+AxisValue*mouse_sensitivity;
+					if (new_camera_pos>camera_state.min_thetas[camera_state.current_pos])
+					{
+						SpringArmComponentPtr->AddRelativeRotation(FRotator(AxisValue*mouse_sensitivity,0.0f,0.0f));
+					}
+					else
+					{
+						SpringArmComponentPtr->SetRelativeRotation(FRotator(camera_state.min_thetas[camera_state.current_pos],current_camera_pos.Yaw,current_camera_pos.Roll));
+					}
+				}
+			}
+			else if (AxisValue>0.0f)
+			{
+				if (current_camera_pos.Pitch<camera_state.max_thetas[camera_state.current_pos])
+				{
+					const double new_camera_pos = current_camera_pos.Pitch+AxisValue*mouse_sensitivity;
+					if (new_camera_pos<camera_state.max_thetas[camera_state.current_pos])
+					{
+						SpringArmComponentPtr->AddRelativeRotation(FRotator(AxisValue*mouse_sensitivity,0.0f,0.0f));
+					}
+					else
+					{
+						SpringArmComponentPtr->SetRelativeRotation(FRotator(camera_state.max_thetas[camera_state.current_pos],current_camera_pos.Yaw,current_camera_pos.Roll));
+					}
+				}
 			}
 		}
-		else if (AxisValue>0.0f)
+		else
 		{
-			if (current_rotation.Pitch>camera_state.min_thetas[camera_state.current_pos])
-			{
-				SpringArmComponentPtr->AddRelativeRotation(FRotator(-AxisValue*mouse_sensitivity,0.0f,0.0f));
-			}
+			
 		}
 	}
 	
@@ -411,14 +466,14 @@ void APerson::RMB_pressed()
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(M_ACM_RMB, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-
+	camera_state.free_camera_mod = true;
 }
 void APerson::RMB_released()
 {
 #ifdef ENABLE_LOGGING_ON_SCREEN_ACTION_MAPPINGS
 	screen_log.PrintMessage(FString("stop ")+M_ACM_RMB, M_DURATION_OF_SCREEN_LOG_MESSAGES_FOR_ACM,FColor::Green);
 #endif
-
+	camera_state.free_camera_mod = false;
 }
 
 
